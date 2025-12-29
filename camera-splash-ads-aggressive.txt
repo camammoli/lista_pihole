@@ -1,0 +1,88 @@
+! =========================================================
+! Camera Splash Ads – Aggressive ABP Filter
+! Purpose: Block splash / video ads in camera & IoT apps
+! Scope: Apply ONLY to mobile devices or camera app clients
+! Warning: Aggressive – may break ad-supported apps
+! Maintainer: <tu nombre / org>
+! =========================================================
+
+
+! ---------------------------------------------------------
+! ALLOWLIST – Required Google / Android services
+! (Prevent app breakage, auth failures, push notifications)
+! ---------------------------------------------------------
+
+@@||gstatic.com^
+@@||ssl.gstatic.com^
+@@||www.gstatic.com^
+@@||googleapis.com^
+@@||notifications-pa.googleapis.com^
+@@||discover-pa.googleapis.com^
+@@||xga-serving-pa.googleapis.com^
+@@||firebaseinstallations.googleapis.com^
+@@||clientservices.googleapis.com^
+@@||android.clients.google.com^
+@@||clients1.google.com^
+@@||clients2.google.com^
+@@||clients3.google.com^
+
+! Infrastructure / updates
+@@||dbl.oisd.nl^
+@@||raw.githubusercontent.com^
+@@||cdn.statically.io^
+
+
+! ---------------------------------------------------------
+! AD NETWORKS – SDK & mediation (direct)
+! ---------------------------------------------------------
+
+||logs.ads.vungle.com^
+||cdn-lb.vungle.com^
+||adx.ads.vungle.com^
+
+||analytics-tcp.mintegral.net^
+||pok.mintegral.net^
+
+||rtbnotify.liftoff.io^
+||impression-east.liftoff.io^
+||cdn.liftoff-creatives.io^
+
+||engagements.appsflyer.com^
+
+||pubads.g.doubleclick.net^
+||googleads.g.doubleclick.net^
+
+
+! ---------------------------------------------------------
+! AD NETWORKS – Full domain blocks (SDK-wide)
+! ---------------------------------------------------------
+
+||vungle.com^
+||mintegral.net^
+||liftoff.io^
+||rayjump.com^
+||mtgglobals.com^
+
+||pangle.io^
+||tiktokpangle.us^
+
+
+! ---------------------------------------------------------
+! SPLASH VIDEO CDNs – ByteDance / Pangle (CRITICAL)
+! This is what actually kills the video ads
+! ---------------------------------------------------------
+
+||ibyteimg.com^
+||byteimg.com^
+||pstatp.com^
+||ttlivecdn.com^
+||snssdk.com^
+
+! Wildcard CDN patterns (aggressive)
+||cdn*byte*.com^
+||cdn*tt*.com^
+
+
+! ---------------------------------------------------------
+! End of list
+! ---------------------------------------------------------
