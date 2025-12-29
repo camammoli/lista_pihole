@@ -3,44 +3,20 @@
 
 ---
 
-## Introducción
-
-La necesidad de documentar este caso surge de una situación concreta y repetida:
-**publicidad intrusiva apareciendo en aplicaciones críticas de cámaras de seguridad,
-sin una solución clara utilizando listas de bloqueo tradicionales**.
-
-Tras semanas de pruebas, ajustes y diagnósticos, se logró una solución funcional.
-En ese punto resultó evidente que el problema —y su resolución— no eran casos aislados,
-sino un patrón que probablemente afecte a muchos otros usuarios de cámaras e IoT.
-
-Este documento existe para **explicar por qué fue necesario crear una lista específica,
-cómo se llegó a ella y en qué condiciones funciona**, con el objetivo de que otros
-puedan reconocer el problema y reproducir la solución de forma informada.
-
----
-
 ## Contexto
 
-El entorno estaba compuesto por **28 cámaras de seguridad**, gestionadas mediante
-**dos aplicaciones móviles distintas**:
+En un entorno de red con **28 cámaras de seguridad**, todas ellas dependientes de una
+**única aplicación móvil propietaria**, comenzaron a aparecer **anuncios de video forzados**
+en la pantalla de inicio de la app.
 
-- **EyePlus** (aproximadamente 10 cámaras)
-- **XMEye** (el resto de las cámaras)
+Estos anuncios presentaban las siguientes características:
 
-Aunque se trata de apps diferentes, desarrolladas por proveedores distintos,
-**ambas presentaban exactamente el mismo comportamiento publicitario**.
+- Aparecían **antes de acceder al video en vivo**
+- Mostraban **cuentas regresivas falsas**
+- Redirigían a más publicidad
+- Bloqueaban el acceso rápido a las cámaras en situaciones urgentes
 
-En las dos aplicaciones comenzaron a aparecer:
-
-- **Anuncios de video forzados** al iniciar la app
-- Publicidad mostrada **antes de acceder al video en vivo**
-- **Cuentas regresivas falsas** o engañosas
-- Redirecciones a más contenido publicitario
-
-Este comportamiento era especialmente grave porque:
-- retrasaba el acceso a las cámaras
-- interfería con situaciones de monitoreo urgente
-- degradaba una función vinculada directamente a seguridad
+Dado el contexto de **seguridad y monitoreo**, este comportamiento era **operativamente inaceptable**.
 
 ---
 
@@ -49,40 +25,34 @@ Este comportamiento era especialmente grave porque:
 - **Servidor DNS**: Pi-hole sobre Raspberry Pi  
 - **Clientes**: teléfonos móviles Android  
 - **Red**: LAN doméstica / pequeña oficina  
-- **Cámaras**:
-  - 10 cámaras gestionadas con EyePlus
-  - 18 cámaras gestionadas con XMEye
+- **Cámaras**: dependientes exclusivamente de una app móvil (sin RTSP / ONVIF)
 - **Restricciones clave**:
   - No era posible instalar bloqueadores (AdGuard, etc.) en los teléfonos
   - No era posible cambiar la app ni el firmware de las cámaras
-  - Las cámaras **solo funcionaban con sus apps propietarias**
   - La solución debía ser **a nivel de red**
 
 ---
 
 ## Problema inicial
 
-A pesar de contar con Pi-hole correctamente configurado y con múltiples listas de
-bloqueo reconocidas (OISD, StevenBlack, Energized, etc.):
+A pesar de contar con Pi-hole correctamente configurado y múltiples listas de bloqueo
+(OISD, StevenBlack, Energized, etc.):
 
-- La publicidad seguía apareciendo en **EyePlus y XMEye**
-- El log de Pi-hole mostraba consultas DNS normales
-- Bloquear dominios publicitarios evidentes no tenía impacto
+- Los anuncios **seguían apareciendo**
+- El log de Pi-hole mostraba actividad DNS normal
+- Bloquear dominios publicitarios “clásicos” no tenía efecto
 
-Esto llevó inicialmente a una conclusión errónea pero común:
-que **Pi-hole “no estaba funcionando”**, cuando en realidad el problema estaba
-en la **forma moderna en que estas apps entregan publicidad**.
+Esto llevó inicialmente a la percepción de que **Pi-hole no estaba funcionando**, cuando en
+realidad el problema era más profundo.
 
 ---
 
 ## Análisis técnico
 
-El análisis del *Query Log* de Pi-hole reveló que ambas aplicaciones,
-a pesar de ser diferentes, compartían **el mismo ecosistema publicitario**.
+Tras un análisis detallado del *Query Log* de Pi-hole, se identificó que:
 
 ### 1. Uso de SDKs publicitarios modernos
-
-Tanto EyePlus como XMEye utilizaban múltiples SDKs de monetización móvil, incluyendo:
+La app utilizaba múltiples SDKs de monetización móvil, entre ellos:
 
 - Vungle
 - Mintegral
@@ -90,52 +60,48 @@ Tanto EyePlus como XMEye utilizaban múltiples SDKs de monetización móvil, inc
 - Rayjump
 - Pangle / TikTok Ads
 
-Estos SDKs emplean técnicas como:
+Estos SDKs empleaban:
 - subdominios dinámicos
 - CNAME cloaking
 - tráfico HTTPS exclusivo
 
 ---
 
-### 2. Publicidad servida desde CDNs compartidos
+### 2. Publicidad servida desde CDNs “neutrales”
+El **video publicitario en sí** no provenía de dominios típicos de ads, sino de:
 
-Los **videos splash** no provenían directamente de los dominios del SDK,
-sino de infraestructuras CDN de gran escala, principalmente asociadas a ByteDance:
+- CDNs de gran escala (principalmente ByteDance)
+- Dominios compartidos con contenido legítimo
+- Infraestructura diseñada para evadir bloqueos DNS simples
 
-- dominios compartidos con contenido legítimo
-- endpoints diseñados para parecer neutrales
-- imposibilidad de diferenciar contenido “ad” vs “no ad” solo por hostname
-
-Esto explica por qué:
-- las listas estándar no bloqueaban los anuncios
-- bloquear únicamente el SDK no eliminaba el video
+Esto explicaba por qué:
+- las listas estándar no funcionaban
+- bloquear solo los SDKs no eliminaba el video
 
 ---
 
-### 3. Confirmación de los límites de Pi-hole
-
+### 3. Confirmación del límite de Pi-hole
 Se comprobó que:
 
-- Pi-hole resolvía DNS correctamente
-- Pi-hole bloqueaba dominios cuando correspondía
-- Pero **no puede inspeccionar contenido HTTPS ni rutas internas**
+- Pi-hole **sí resolvía DNS correctamente**
+- Pi-hole **sí bloqueaba dominios cuando correspondía**
+- Pero **no puede filtrar contenido HTTPS ni rutas internas**
 
 Cuando se activaba **AdGuard en un teléfono**, los anuncios desaparecían,
-confirmando que el bloqueo efectivo ocurría **a nivel de contenido**, no solo DNS.
+confirmando que el bloqueo exitoso ocurría **después del DNS**.
 
 ---
 
 ## Restricciones críticas
 
-El problema estaba condicionado por factores no negociables:
+El problema se agravaba por condiciones no negociables:
 
 - ❌ No se podía instalar software adicional en los teléfonos
-- ❌ No se podía usar proxy con inspección TLS
-- ❌ No se podían reemplazar ni EyePlus ni XMEye
-- ❌ No se podían cambiar las cámaras
-- ❌ La solución debía ser inmediata y verificable
+- ❌ No se podía usar un proxy con inspección TLS
+- ❌ No se podía reemplazar la app ni las cámaras
+- ❌ La solución debía ser inmediata y demostrable
 
-El plazo para resolver el problema era **muy limitado (horas)**.
+El plazo para resolver el problema era **de pocas horas**.
 
 ---
 
@@ -143,24 +109,71 @@ El plazo para resolver el problema era **muy limitado (horas)**.
 
 ### Enfoque adoptado
 
-Se optó por una solución **agresiva pero controlada**, basada en:
+Se decidió implementar una solución **agresiva pero controlada**, basada en:
 
-- Bloqueo completo de SDKs publicitarios
+- Bloqueo selectivo de SDKs publicitarios
 - Bloqueo de CDNs específicos usados para videos splash
 - Uso estricto de **grupos en Pi-hole**
-- Impacto limitado exclusivamente a dispositivos móviles
+- Aislamiento del impacto únicamente a dispositivos móviles
 
 ---
 
 ### Implementación técnica
 
-1. Se creó un **grupo específico** en Pi-hole (por ejemplo `Camaras`)
-2. Se bloquearon de forma explícita:
-   - SDKs de monetización
-   - CDNs asociados a splash ads
+1. Se creó un **grupo específico** en Pi-hole (por ejemplo `Camaras` o `Telefonos`)
+2. Se identificaron y bloquearon:
+   - SDKs publicitarios completos
+   - CDNs de video asociados a splash ads
 3. Se permitieron explícitamente servicios críticos:
    - Google / Firebase
-   - APIs necesarias para notificaciones y login
-4. Las reglas se consolidaron en una **lista ABP-style dedicada**
+   - Servicios de notificaciones
+4. Se consolidaron las reglas en una **lista ABP-style dedicada**
 
-Esta lista se publicó como repositorio p
+Esta lista fue posteriormente publicada como un repositorio público para facilitar su mantenimiento y reutilización.
+
+---
+
+## Resultado
+
+Tras aplicar la solución:
+
+- ✅ Los anuncios de video **dejaron de reproducirse**
+- ✅ El acceso a las cámaras volvió a ser inmediato
+- ✅ La app continuó funcionando correctamente
+- ⚠️ En algunos casos apareció una breve pantalla negra (comportamiento esperado)
+
+El resultado fue considerado **operativamente exitoso**.
+
+---
+
+## Lecciones aprendidas
+
+1. **No toda la publicidad es bloqueable por DNS**
+2. Muchas apps modernas están diseñadas explícitamente para **resistir Pi-hole**
+3. El uso de **CDNs compartidos** complica el bloqueo selectivo
+4. Pi-hole sigue siendo útil, pero **tiene límites claros**
+5. Las listas agresivas deben:
+   - ser pequeñas
+   - estar bien documentadas
+   - aplicarse solo por grupo
+
+---
+
+## Conclusión
+
+Este caso demuestra que, incluso con fuertes restricciones, es posible mitigar
+publicidad intrusiva en aplicaciones críticas **si se entiende el modelo de entrega
+de contenido moderno** y se acepta un enfoque **quirúrgico y controlado**.
+
+La solución no es universal, pero sí **reproducible** para escenarios similares
+con aplicaciones de cámaras, IoT y CCTV.
+
+---
+
+## Nota final
+
+Este caso no pretende promover el bloqueo indiscriminado, sino documentar
+una **respuesta técnica a una implementación de monetización agresiva**
+que interfiere con funciones de seguridad.
+
+Use este enfoque con criterio.
