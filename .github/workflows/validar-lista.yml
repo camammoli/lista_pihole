@@ -1,0 +1,46 @@
+name: Validar lista ABP
+
+on:
+  push:
+    paths:
+      - '**.txt'
+  pull_request:
+    paths:
+      - '**.txt'
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar formato ABP
+        run: |
+          echo "Verificando formato de listas ABP..."
+          for f in *.txt; do
+            echo "--- $f ---"
+            lineas=$(grep -c . "$f" || true)
+            echo "Total líneas: $lineas"
+
+            # Verificar que empiece con encabezado ABP o sea un comentario
+            primera=$(head -1 "$f")
+            if [[ "$primera" != \!* && "$primera" != \#* && "$primera" != \[* ]]; then
+              echo "WARN: $f no empieza con encabezado ABP (! o #)"
+            fi
+
+            # Detectar líneas que no son comentarios ni reglas válidas
+            invalidas=$(grep -v '^!' "$f" | grep -v '^#' | grep -v '^$' | grep -v '^\|\|' | grep -v '^@@' | grep -v '^\[' || true)
+            if [[ -n "$invalidas" ]]; then
+              echo "WARN: Líneas con formato inesperado:"
+              echo "$invalidas" | head -10
+            fi
+
+            echo "OK: $f procesado"
+          done
+
+      - name: Contar entradas
+        run: |
+          for f in *.txt; do
+            entradas=$(grep -c '^\|\|' "$f" || true)
+            echo "$f: $entradas entradas de bloqueo"
+          done
