@@ -151,3 +151,8 @@ Contributions are welcome, but please note:
 - Avoid adding generic ad domains
 - Document why each new domain is required
 - Avoid breaking core Google / Firebase services
+
+## See also
+
+- [Case study: camera splash ads (English)](case-study-en.md)
+- [Caso de estudio: publicidad splash en cámaras (Español)](case-study-es.md)
