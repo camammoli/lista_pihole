@@ -154,3 +154,8 @@ Las contribuciones son bienvenidas, pero tené en cuenta:
 - Evitar agregar dominios publicitarios genéricos
 - Documentar por qué cada dominio nuevo es necesario
 - Evitar romper servicios esenciales de Google / Firebase
+
+## Ver también
+
+- [Caso de estudio: publicidad splash en cámaras (Español)](case-study-es.md)
+- [Case study: camera splash ads (English)](case-study-en.md)
