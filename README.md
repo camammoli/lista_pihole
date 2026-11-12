@@ -1,5 +1,7 @@
 # Camera Splash Ads – Aggressive Pi-hole / ABP Filter List
 
+[![Archivado en Software Heritage](https://archive.softwareheritage.org/badge/origin/https://github.com/camammoli/lista_pihole/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/camammoli/lista_pihole)
+
 ## Overview
 
 This repository provides an **aggressive ABP-style blocklist** designed to eliminate
